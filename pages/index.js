@@ -1,78 +1,186 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/router";
 
 export default function Home() {
+  const router = useRouter();
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    // Play ambient sound on load
+    if (audioRef.current) {
+      audioRef.current.volume = 0.4;
+      audioRef.current.play().catch(() => {});
+    }
+  }, []);
+
+  // --- Ripple effect setup ---
+  useEffect(() => {
+    const canvas = document.getElementById("rippleCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let w, h;
+    let ripples = [];
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    class Ripple {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 0;
+        this.opacity = 1;
+      }
+      update() {
+        this.radius += 2;
+        this.opacity -= 0.01;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = `rgba(0, 224, 255, ${this.opacity})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, w, h);
+      ripples.forEach((r, i) => {
+        r.update();
+        r.draw();
+        if (r.opacity <= 0) ripples.splice(i, 1);
+      });
+      requestAnimationFrame(animate);
+    }
+
+    canvas.addEventListener("click", (e) => {
+      ripples.push(new Ripple(e.clientX, e.clientY));
+    });
+
+    animate();
+
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="relative w-full h-screen overflow-hidden">
+      {/* Background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/pi-jalsuddhi.jpg')",
+          filter: "brightness(0.7)",
+        }}
+      ></div>
+
+      {/* Canvas water ripple layer */}
+      <canvas
+        id="rippleCanvas"
+        className="absolute inset-0 z-0"
+        style={{ pointerEvents: "none" }}
+      ></canvas>
+
+      {/* Overlay gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#001f2e88] to-[#000000aa]"></div>
+
+      {/* Ambient water sound */}
+      <audio ref={audioRef} loop>
+        <source src="/sounds/waterflow.mp3" type="audio/mpeg" />
+      </audio>
+
+      {/* Floating bubbles */}
+      {[...Array(12)].map((_, i) => (
+        <div key={i} className={`bubble bubble-${i + 1}`}></div>
+      ))}
+
+      {/* Main animated content */}
+      <motion.div
+        className="relative z-10 flex flex-col items-center justify-center text-center text-white h-full"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.5 }}
+      >
+        <motion.h1
+          className="text-7xl md:text-8xl font-extrabold mb-8 neon-text tracking-wider"
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5, duration: 1 }}
+        >
+          💧 JalSuddhi
+        </motion.h1>
+
+        <motion.p
+          className="text-2xl md:text-3xl mb-12 text-cyan-100 font-light"
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 1, duration: 1 }}
+        >
+          Purifying Every Drop. Empowering Every Life.
+        </motion.p>
+
+        <motion.button
+          onClick={() => router.push("/login")}
+          whileHover={{
+            scale: 1.1,
+            boxShadow: "0px 0px 30px #00e0ff",
+            textShadow: "0px 0px 10px #00e0ff",
+          }}
+          whileTap={{ scale: 0.95 }}
+          className="bg-cyan-500 text-black px-10 py-5 rounded-full font-semibold text-xl hover:bg-cyan-400 transition-all duration-300 shadow-xl"
+        >
+          Dive In →
+        </motion.button>
+      </motion.div>
+
+      <style jsx>{`
+        /* Neon text effect */
+        .neon-text {
+          color: #00e0ff;
+          text-shadow: 0 0 5px #00e0ff, 0 0 10px #00e0ff, 0 0 20px #00e0ff,
+            0 0 40px #00e0ff, 0 0 80px #00e0ff;
+        }
+
+        /* Bubble animations */
+        .bubble {
+          position: absolute;
+          bottom: -100px;
+          background: rgba(255, 255, 255, 0.25);
+          border-radius: 50%;
+          animation: rise 10s infinite ease-in;
+        }
+
+        ${Array.from({ length: 12 })
+          .map(
+            (_, i) => `
+          .bubble-${i + 1} {
+            left: ${Math.random() * 100}%;
+            width: ${10 + Math.random() * 20}px;
+            height: ${10 + Math.random() * 20}px;
+            animation-delay: ${Math.random() * 5}s;
+          }`
+          )
+          .join("\n")}
+
+        @keyframes rise {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 0.7;
+          }
+          100% {
+            transform: translateY(-110vh) scale(1.3);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
