@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/router";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase/config";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -12,7 +12,6 @@ export default function Login() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // 🎵 Background water sound
   useEffect(() => {
     const audio = new Audio("/water.mp3");
     audio.loop = true;
@@ -23,11 +22,30 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      router.push("/dashboard"); // redirect after login
     } catch (err) {
-      setError("Invalid credentials. Please try again.");
+      if (err.code === "auth/user-not-found") {
+        setError("No account found with this email.");
+      } else if (err.code === "auth/wrong-password") {
+        setError("Incorrect password.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Invalid email.");
+      } else {
+        setError(err.message);
+      }
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) return setError("Enter your email first.");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset email sent. Check your inbox.");
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -48,9 +66,7 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-white font-semibold mb-2">
-              Email
-            </label>
+            <label className="block text-white font-semibold mb-2">Email</label>
             <input
               type="email"
               className="w-full p-3 rounded-md outline-none text-black bg-white/80 focus:ring-2 focus:ring-cyan-500"
@@ -62,9 +78,7 @@ export default function Login() {
           </div>
 
           <div className="relative">
-            <label className="block text-white font-semibold mb-2">
-              Password
-            </label>
+            <label className="block text-white font-semibold mb-2">Password</label>
             <input
               type={showPass ? "text" : "password"}
               className="w-full p-3 rounded-md outline-none text-black bg-white/80 focus:ring-2 focus:ring-cyan-500"
@@ -81,9 +95,7 @@ export default function Login() {
             </div>
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px #00e0ff" }}
@@ -94,6 +106,15 @@ export default function Login() {
             Login
           </motion.button>
         </form>
+
+        <p className="text-right mt-2">
+          <span
+            className="text-cyan-300 cursor-pointer hover:underline"
+            onClick={handleForgotPassword}
+          >
+            Forgot Password?
+          </span>
+        </p>
 
         <p className="text-center text-white mt-6">
           Don’t have an account?{" "}

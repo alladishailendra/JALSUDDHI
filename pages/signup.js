@@ -12,7 +12,6 @@ export default function Signup() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // 🎵 Background water sound
   useEffect(() => {
     const audio = new Audio("/water.mp3");
     audio.loop = true;
@@ -23,11 +22,20 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    setError("");
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      router.push("/dashboard"); // redirect to dashboard after signup
     } catch (err) {
-      setError("Unable to create account. Try again.");
+      if (err.code === "auth/email-already-in-use") {
+        setError("Email already registered. Try login.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Invalid email address.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Password should be at least 6 characters.");
+      } else {
+        setError(err.message);
+      }
     }
   };
 
@@ -48,9 +56,7 @@ export default function Signup() {
 
         <form onSubmit={handleSignup} className="space-y-6">
           <div>
-            <label className="block text-white font-semibold mb-2">
-              Email
-            </label>
+            <label className="block text-white font-semibold mb-2">Email</label>
             <input
               type="email"
               className="w-full p-3 rounded-md outline-none text-black bg-white/80 focus:ring-2 focus:ring-cyan-500"
@@ -62,13 +68,11 @@ export default function Signup() {
           </div>
 
           <div className="relative">
-            <label className="block text-white font-semibold mb-2">
-              Password
-            </label>
+            <label className="block text-white font-semibold mb-2">Password</label>
             <input
               type={showPass ? "text" : "password"}
               className="w-full p-3 rounded-md outline-none text-black bg-white/80 focus:ring-2 focus:ring-cyan-500"
-              placeholder="Enter your password"
+              placeholder="Enter your password (min 6 chars)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -81,9 +85,7 @@ export default function Signup() {
             </div>
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px #00e0ff" }}

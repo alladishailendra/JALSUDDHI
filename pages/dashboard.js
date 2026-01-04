@@ -1,7 +1,38 @@
 import Navbar from "../components/Navbar";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
+  const [espStatus, setEspStatus] = useState("offline");
+
+  useEffect(() => {
+    const espIp = localStorage.getItem("espIp");
+
+    if (!espIp) {
+      setEspStatus("offline");
+      return;
+    }
+
+    const checkESP = async () => {
+      try {
+        const res = await fetch(`${espIp}/ping`, {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          setEspStatus("online");
+        } else {
+          setEspStatus("offline");
+        }
+      } catch {
+        setEspStatus("offline");
+      }
+    };
+
+    checkESP();
+    const interval = setInterval(checkESP, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-800 text-white overflow-hidden">
       <Navbar />
@@ -45,8 +76,14 @@ export default function Dashboard() {
             <h3 className="font-semibold text-lg mb-2">System Status</h3>
             <p className="text-sm text-slate-200">All systems nominal</p>
             <div className="mt-4 flex gap-2">
-              <span className="px-3 py-1 bg-green-500 text-black rounded-full text-sm font-semibold">
-                Online
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  espStatus === "online"
+                    ? "bg-green-500 text-black"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {espStatus === "online" ? "🟢 Online" : "🔴 Offline"}
               </span>
             </div>
           </motion.div>
